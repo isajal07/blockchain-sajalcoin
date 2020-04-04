@@ -30,7 +30,7 @@ class Transaction {
       throw new Error('No signarure in this transaction');
     }
 
-    const publiKey = ec.keyFromPublic(this.fromAddress, 'hex');
+    const publicKey = ec.keyFromPublic(this.fromAddress, 'hex');
     return publicKey.verify(this.calculateHash(), this.signature);
   }
 }
@@ -89,13 +89,19 @@ class Blockchain {
     console.log('Block successfully mined!');
     this.chain.push(block);
 
-    this.pendingTransactions = [
-      new Transaction(null, miningRewardAddress, this.miningReward)
-    ];
+    this.pendingTransactions = [];
   }
 
-  createTransaction(transaction) {
-    this.pendingTransactions.push(transaction)
+  addTransaction(transaction) {
+    if(!transaction.fromAddress || !transaction.toAddress) {
+      throw new Error('Transaction must include from and to address');
+    }
+
+    if(!transaction.isValid()) {
+      throw new Error('Cannot add incalid transaction to chain');
+    }
+
+    this.pendingTransactions.push(transaction);
   }
 
   getBalanceOfAddress(address) {
@@ -120,6 +126,10 @@ class Blockchain {
       const currentBlock = this.chain[i];
       const previousBlock = this.chain[i - 1];
 
+      if(!currentBlock.hasValidTransaction()) {
+        return false;
+      }
+
       if(currentBlock.hash !== currentBlock.calculateHash()){
         return false;
       }
@@ -130,6 +140,7 @@ class Blockchain {
     }
     return true;
   }
+
 }
 
 module.exports.Blockchain = Blockchain;
